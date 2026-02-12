@@ -1,25 +1,27 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Universal AI Premium</title>
+<title>BishesAI Premium</title>
 
 <script src="https://cdn.tailwindcss.com"></script>
 
-<!-- Firebase -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+<style>
+body { overflow: hidden; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+</style>
 
 </head>
 
-<body class="bg-gray-950 text-gray-100 h-screen flex overflow-hidden">
+<body class="bg-gray-950 text-gray-100 h-screen flex">
 
 <!-- LOGIN SCREEN -->
 <div id="loginScreen" class="w-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-600">
   <div class="bg-gray-900 p-8 rounded-xl shadow-2xl text-center w-96">
-    <h2 class="text-2xl font-bold mb-6">Universal AI</h2>
-    <button onclick="googleLogin()"
+    <h2 class="text-2xl font-bold mb-6">BishesAI Premium</h2>
+    <button onclick="googleLogin()" 
       class="bg-white text-black px-6 py-3 rounded-lg w-full font-semibold hover:scale-105 transition">
       Continue with Google
     </button>
@@ -44,12 +46,13 @@
 
     <div id="chatList" class="flex-1 overflow-y-auto px-3 space-y-2"></div>
 
-    <div class="p-4 border-t border-gray-800">
+    <div class="p-4 border-t border-gray-800 text-sm flex justify-between">
+      <button onclick="openSettings()" class="hover:text-indigo-400">API</button>
       <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
     </div>
   </div>
 
-  <!-- MAIN CHAT -->
+  <!-- CHAT AREA -->
   <div class="flex-1 flex flex-col">
 
     <div class="p-4 border-b border-gray-800 bg-gray-900">
@@ -62,8 +65,8 @@
     <div id="chatBox" class="flex-1 overflow-y-auto p-6 space-y-6"></div>
 
     <div class="p-4 bg-gray-900 border-t border-gray-800 flex gap-3">
-      <input id="userInput" type="text"
-        class="flex-1 bg-gray-800 p-3 rounded-lg">
+      <input id="userInput" type="text" placeholder="Send a message..."
+        class="flex-1 bg-gray-800 p-3 rounded-lg focus:outline-none">
       <button onclick="sendMessage()" 
         class="bg-indigo-600 hover:bg-indigo-700 px-6 rounded-lg">
         Send
@@ -73,67 +76,81 @@
   </div>
 </div>
 
-<script>
-// 🔥 PASTE YOUR FIREBASE CONFIG HERE
+<!-- API SETTINGS MODAL -->
+<div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center">
+  <div class="bg-gray-900 p-6 rounded-xl w-96 border border-gray-700">
+    <h3 class="text-lg font-bold mb-4">API Settings</h3>
+    <input id="apiEndpoint" placeholder="API Endpoint"
+      class="w-full mb-3 p-2 bg-gray-800 rounded">
+    <input id="apiKey" placeholder="API Key"
+      class="w-full mb-4 p-2 bg-gray-800 rounded">
+    <div class="flex justify-end gap-3">
+      <button onclick="saveSettings()" class="bg-indigo-600 px-4 py-2 rounded">Save</button>
+      <button onclick="closeSettings()" class="bg-gray-700 px-4 py-2 rounded">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } 
+from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDAztxs1Nq-Z5I_aO3QeYZZ7lFlr7qZpok",
+  authDomain: "bishesai.firebaseapp.com",
+  projectId: "bishesai",
+  storageBucket: "bishesai.firebasestorage.app",
+  messagingSenderId: "715871264430",
+  appId: "1:715871264430:web:5596ab19535688527f973f"
 };
 
-// INIT FIREBASE
-firebase.initializeApp(firebaseConfig);
-const auth = firebase.auth();
-const provider = new firebase.auth.GoogleAuthProvider();
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+window.googleLogin = async () => {
+  try { await signInWithPopup(auth, provider); }
+  catch (e) { alert(e.message); }
+};
+
+window.logout = async () => {
+  await signOut(auth);
+  location.reload();
+};
 
 let chats = [];
 let currentChat = null;
-let userId = null;
+let currentUserId = null;
 
-// GOOGLE LOGIN
-function googleLogin(){
-  auth.signInWithPopup(provider);
-}
-
-auth.onAuthStateChanged(user=>{
-  if(user){
-    userId = user.uid;
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUserId = user.uid;
     document.getElementById("loginScreen").classList.add("hidden");
     document.getElementById("app").classList.remove("hidden");
-
     document.getElementById("userName").innerText = user.displayName;
     document.getElementById("userPhoto").src = user.photoURL;
-
     loadChats();
   }
 });
 
-// LOGOUT
-function logout(){
-  auth.signOut();
-  location.reload();
-}
-
-// USER-SPECIFIC STORAGE
 function saveChats(){
-  localStorage.setItem("chats_"+userId, JSON.stringify(chats));
+  localStorage.setItem("chats_" + currentUserId, JSON.stringify(chats));
 }
 
 function loadChats(){
-  chats = JSON.parse(localStorage.getItem("chats_"+userId)) || [];
+  chats = JSON.parse(localStorage.getItem("chats_" + currentUserId)) || [];
   renderChats();
 }
 
-// CHAT FUNCTIONS
-function newChat(){
+window.newChat = function(){
   const chat = { id: Date.now(), name: "New Chat", messages: [] };
   chats.push(chat);
   currentChat = chat;
   saveChats();
   renderChats();
   renderMessages();
-}
+};
 
 function renderChats(){
   const list = document.getElementById("chatList");
@@ -161,9 +178,10 @@ function renderMessages(){
       </div>`;
     box.appendChild(div);
   });
+  box.scrollTop = box.scrollHeight;
 }
 
-async function sendMessage(){
+window.sendMessage = async function(){
   const input=document.getElementById("userInput");
   if(!input.value.trim()||!currentChat) return;
 
@@ -194,9 +212,24 @@ async function sendMessage(){
   currentChat.messages.push({role:"assistant",content:reply});
   saveChats();
   renderMessages();
-}
+};
+
+window.openSettings = function(){
+  document.getElementById("settingsModal").classList.remove("hidden");
+};
+
+window.closeSettings = function(){
+  document.getElementById("settingsModal").classList.add("hidden");
+};
+
+window.saveSettings = function(){
+  localStorage.setItem("apiEndpoint",document.getElementById("apiEndpoint").value);
+  localStorage.setItem("apiKey",document.getElementById("apiKey").value);
+  closeSettings();
+};
 </script>
 
 </body>
 </html>
+
 
