@@ -1,25 +1,27 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Universal AI Chat Interface</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Universal AI Premium</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"></script>
+
 </head>
 
-<body class="bg-gray-100 h-screen flex">
+<body class="bg-gray-950 text-gray-100 h-screen flex overflow-hidden">
 
 <!-- LOGIN SCREEN -->
-<div id="loginScreen" class="w-full flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600">
-  <div class="bg-white p-8 rounded-xl shadow-2xl w-96">
-    <h2 class="text-2xl font-bold text-center mb-6">Login</h2>
-    <input id="username" type="text" placeholder="Username"
-      class="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-    <input id="password" type="password" placeholder="Password"
-      class="w-full p-3 mb-4 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-    <button onclick="login()"
-      class="w-full bg-indigo-600 text-white p-3 rounded-lg hover:bg-indigo-700">
-      Login
+<div id="loginScreen" class="w-full flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-600">
+  <div class="bg-gray-900 p-8 rounded-xl shadow-2xl text-center w-96">
+    <h2 class="text-2xl font-bold mb-6">Universal AI</h2>
+    <button onclick="googleLogin()"
+      class="bg-white text-black px-6 py-3 rounded-lg w-full font-semibold hover:scale-105 transition">
+      Continue with Google
     </button>
   </div>
 </div>
@@ -28,47 +30,42 @@
 <div id="app" class="hidden w-full flex">
 
   <!-- SIDEBAR -->
-  <div class="w-64 bg-gray-900 text-white flex flex-col">
-    <div class="p-4 text-lg font-bold border-b border-gray-700">
-      Chats
+  <div class="w-72 bg-gray-900 border-r border-gray-800 flex flex-col">
+
+    <div class="p-4 flex items-center gap-3 border-b border-gray-800">
+      <img id="userPhoto" class="w-8 h-8 rounded-full">
+      <span id="userName" class="text-sm"></span>
     </div>
 
-    <button onclick="newChat()"
-      class="m-3 bg-indigo-600 p-2 rounded hover:bg-indigo-700">
+    <button onclick="newChat()" 
+      class="m-4 bg-indigo-600 hover:bg-indigo-700 p-2 rounded-lg">
       + New Chat
     </button>
 
-    <div id="chatHistory" class="flex-1 overflow-y-auto px-3"></div>
+    <div id="chatList" class="flex-1 overflow-y-auto px-3 space-y-2"></div>
 
-    <div class="p-3 border-t border-gray-700 text-sm">
+    <div class="p-4 border-t border-gray-800">
       <button onclick="logout()" class="text-red-400 hover:underline">Logout</button>
     </div>
   </div>
 
-  <!-- CHAT AREA -->
+  <!-- MAIN CHAT -->
   <div class="flex-1 flex flex-col">
 
-    <!-- HEADER -->
-    <div class="bg-white p-4 shadow flex justify-between items-center">
-      <input id="modelName" type="text" placeholder="Model Name (e.g., gpt-4)"
-        class="border p-2 rounded w-1/4">
-      <div>
-        <button onclick="openSettings()" 
-          class="bg-gray-200 px-4 py-2 rounded hover:bg-gray-300">
-          API Settings
-        </button>
-      </div>
+    <div class="p-4 border-b border-gray-800 bg-gray-900">
+      <select id="modelSelect" class="bg-gray-800 p-2 rounded">
+        <option value="gpt-4o-mini">gpt-4o-mini</option>
+        <option value="gpt-4">gpt-4</option>
+      </select>
     </div>
 
-    <!-- MESSAGES -->
-    <div id="chatBox" class="flex-1 overflow-y-auto p-6 space-y-4"></div>
+    <div id="chatBox" class="flex-1 overflow-y-auto p-6 space-y-6"></div>
 
-    <!-- INPUT -->
-    <div class="p-4 bg-white flex gap-3">
-      <input id="userInput" type="text" placeholder="Type your message..."
-        class="flex-1 border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500">
-      <button onclick="sendMessage()"
-        class="bg-indigo-600 text-white px-6 rounded-lg hover:bg-indigo-700">
+    <div class="p-4 bg-gray-900 border-t border-gray-800 flex gap-3">
+      <input id="userInput" type="text"
+        class="flex-1 bg-gray-800 p-3 rounded-lg">
+      <button onclick="sendMessage()" 
+        class="bg-indigo-600 hover:bg-indigo-700 px-6 rounded-lg">
         Send
       </button>
     </div>
@@ -76,172 +73,130 @@
   </div>
 </div>
 
-<!-- SETTINGS MODAL -->
-<div id="settingsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-  <div class="bg-white p-6 rounded-lg w-96">
-    <h3 class="text-xl font-bold mb-4">API Configuration</h3>
-
-    <input id="apiEndpoint" type="text" placeholder="API Endpoint URL"
-      class="w-full p-2 border mb-3 rounded">
-
-    <input id="apiKey" type="text" placeholder="API Key"
-      class="w-full p-2 border mb-4 rounded">
-
-    <div class="flex justify-end gap-3">
-      <button onclick="saveSettings()" 
-        class="bg-indigo-600 text-white px-4 py-2 rounded">
-        Save
-      </button>
-      <button onclick="closeSettings()" 
-        class="bg-gray-300 px-4 py-2 rounded">
-        Cancel
-      </button>
-    </div>
-  </div>
-</div>
-
 <script>
-let chats = JSON.parse(localStorage.getItem("chats")) || [];
+// 🔥 PASTE YOUR FIREBASE CONFIG HERE
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_AUTH_DOMAIN",
+  projectId: "YOUR_PROJECT_ID",
+  appId: "YOUR_APP_ID"
+};
+
+// INIT FIREBASE
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const provider = new firebase.auth.GoogleAuthProvider();
+
+let chats = [];
 let currentChat = null;
+let userId = null;
 
-// LOGIN
-function login() {
-  const user = document.getElementById("username").value;
-  const pass = document.getElementById("password").value;
-
-  if(user && pass){
-    localStorage.setItem("user", user);
-    document.getElementById("loginScreen").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    loadChats();
-  } else {
-    alert("Enter credentials");
-  }
+// GOOGLE LOGIN
+function googleLogin(){
+  auth.signInWithPopup(provider);
 }
 
+auth.onAuthStateChanged(user=>{
+  if(user){
+    userId = user.uid;
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("app").classList.remove("hidden");
+
+    document.getElementById("userName").innerText = user.displayName;
+    document.getElementById("userPhoto").src = user.photoURL;
+
+    loadChats();
+  }
+});
+
+// LOGOUT
 function logout(){
-  localStorage.removeItem("user");
+  auth.signOut();
   location.reload();
 }
 
-window.onload = function(){
-  if(localStorage.getItem("user")){
-    document.getElementById("loginScreen").classList.add("hidden");
-    document.getElementById("app").classList.remove("hidden");
-    loadChats();
-  }
-};
-
-// CHAT FUNCTIONS
-function newChat(){
-  const id = Date.now();
-  const chat = { id, messages: [] };
-  chats.push(chat);
-  currentChat = chat;
-  saveChats();
-  loadChats();
-  renderChat();
+// USER-SPECIFIC STORAGE
+function saveChats(){
+  localStorage.setItem("chats_"+userId, JSON.stringify(chats));
 }
 
 function loadChats(){
-  const container = document.getElementById("chatHistory");
-  container.innerHTML = "";
+  chats = JSON.parse(localStorage.getItem("chats_"+userId)) || [];
+  renderChats();
+}
+
+// CHAT FUNCTIONS
+function newChat(){
+  const chat = { id: Date.now(), name: "New Chat", messages: [] };
+  chats.push(chat);
+  currentChat = chat;
+  saveChats();
+  renderChats();
+  renderMessages();
+}
+
+function renderChats(){
+  const list = document.getElementById("chatList");
+  list.innerHTML = "";
   chats.forEach(chat=>{
     const div = document.createElement("div");
-    div.className = "p-2 hover:bg-gray-700 cursor-pointer rounded";
-    div.innerText = "Chat " + chat.id;
-    div.onclick = ()=>{
-      currentChat = chat;
-      renderChat();
-    };
-    container.appendChild(div);
+    div.className="p-2 rounded hover:bg-gray-800 cursor-pointer";
+    div.innerText=chat.name;
+    div.onclick=()=>{ currentChat=chat; renderMessages(); };
+    list.appendChild(div);
   });
 }
 
-function saveChats(){
-  localStorage.setItem("chats", JSON.stringify(chats));
-}
-
-function renderChat(){
-  const chatBox = document.getElementById("chatBox");
-  chatBox.innerHTML = "";
+function renderMessages(){
+  const box = document.getElementById("chatBox");
+  box.innerHTML="";
   if(!currentChat) return;
   currentChat.messages.forEach(msg=>{
-    const div = document.createElement("div");
-    div.className = msg.role === "user"
-      ? "text-right"
-      : "text-left";
-
-    div.innerHTML = `
-      <div class="inline-block px-4 py-2 rounded-lg 
-      ${msg.role==="user" ? "bg-indigo-600 text-white" : "bg-gray-200"}">
+    const div=document.createElement("div");
+    div.className= msg.role==="user" ? "text-right" : "text-left";
+    div.innerHTML=`
+      <div class="inline-block px-4 py-3 rounded-2xl max-w-xl
+      ${msg.role==="user"?"bg-indigo-600":"bg-gray-800"}">
       ${msg.content}
       </div>`;
-    chatBox.appendChild(div);
+    box.appendChild(div);
   });
 }
 
-// SEND MESSAGE
 async function sendMessage(){
-  const input = document.getElementById("userInput");
-  const text = input.value.trim();
-  if(!text || !currentChat) return;
+  const input=document.getElementById("userInput");
+  if(!input.value.trim()||!currentChat) return;
 
-  currentChat.messages.push({role:"user", content:text});
-  input.value = "";
-  renderChat();
+  const text=input.value;
+  input.value="";
+  currentChat.messages.push({role:"user",content:text});
+  renderMessages();
 
-  const endpoint = localStorage.getItem("apiEndpoint");
-  const apiKey = localStorage.getItem("apiKey");
-  const model = document.getElementById("modelName").value;
+  const endpoint=localStorage.getItem("apiEndpoint");
+  const key=localStorage.getItem("apiKey");
+  const model=document.getElementById("modelSelect").value;
 
-  if(!endpoint || !apiKey){
-    alert("Set API Settings first");
-    return;
-  }
+  const res=await fetch(endpoint,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer "+key
+    },
+    body:JSON.stringify({
+      model:model,
+      messages:currentChat.messages
+    })
+  });
 
-  try{
-    const res = await fetch(endpoint, {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer "+apiKey
-      },
-      body: JSON.stringify({
-        model: model,
-        messages: currentChat.messages
-      })
-    });
+  const data=await res.json();
+  const reply=data.choices?.[0]?.message?.content || "No response";
 
-    const data = await res.json();
-    const reply = data.choices?.[0]?.message?.content || "No response";
-
-    currentChat.messages.push({role:"assistant", content:reply});
-    saveChats();
-    renderChat();
-
-  }catch(e){
-    alert("API Error");
-  }
-}
-
-// SETTINGS
-function openSettings(){
-  document.getElementById("settingsModal").classList.remove("hidden");
-  document.getElementById("apiEndpoint").value = localStorage.getItem("apiEndpoint") || "";
-  document.getElementById("apiKey").value = localStorage.getItem("apiKey") || "";
-}
-
-function closeSettings(){
-  document.getElementById("settingsModal").classList.add("hidden");
-}
-
-function saveSettings(){
-  localStorage.setItem("apiEndpoint", document.getElementById("apiEndpoint").value);
-  localStorage.setItem("apiKey", document.getElementById("apiKey").value);
-  closeSettings();
+  currentChat.messages.push({role:"assistant",content:reply});
+  saveChats();
+  renderMessages();
 }
 </script>
 
 </body>
 </html>
+
